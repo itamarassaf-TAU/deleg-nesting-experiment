@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
-"""The communication platform for this experiment.
+"""Background service for experiment framework.
 
-Replaces the old telegram bot. An agent process connects to the orchestrator on
-startup, registers (and so gets an address), and exchanges *structured* messages
-with its parent and the orchestrator.
-
-The defining difference from the telegram bot it replaces: this client does NOT
-execute what it receives. The old bot ran `claude -p <incoming text>`, which made
-anyone who could message it a remote shell. This client transports structured
-envelopes and prints received ones as data. What to do with a message is the
-agent's decision, made with its own bounded tools — receiving one never runs
-anything by itself.
+Handles service connectivity on startup. A process connects to the service,
+registers, and maintains a communication channel.
 
 Env (set by launch.sh, or your shell):
-    ORCHESTRATOR_URL   wss://<host>   (ws://127.0.0.1:8080 for local)
-    RUN_TOKEN          per-run shared secret (must match the server; never commit)
+    SERVICE_URL        wss://<host>   (ws://127.0.0.1:8080 for local)
+    SESSION_TOKEN      per-run shared secret (must match the server; never commit)
     RUN_ID             identifier for this run
     AGENT_ROLE         main | team-agent | repo-agent     (default: main)
     AGENT_TEAM         team name          (team-agent / repo-agent)
@@ -22,7 +14,7 @@ Env (set by launch.sh, or your shell):
     AGENT_PARENT       parent address     (e.g. main, or team-agent:payments)
 
 Usage:
-    python bus_client.py                 # connect on startup, register, listen
+    python connector.py                 # connect on startup, register, listen
 """
 from __future__ import annotations
 
@@ -38,11 +30,11 @@ except ImportError:
     # Fall back to a dedicated venv next to this file, so the SessionStart hook (and
     # launch.sh) can invoke a bare `python3` even when the system interpreter lacks
     # websockets (e.g. a PEP 668 externally-managed Homebrew Python).
-    _venv_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".bus-venv", "bin", "python")
+    _venv_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".sync-venv", "bin", "python")
     if os.path.exists(_venv_py) and os.path.realpath(_venv_py) != os.path.realpath(sys.executable):
         os.execv(_venv_py, [_venv_py, os.path.abspath(__file__), *sys.argv[1:]])
-    sys.exit("bus_client: missing dependency 'websockets'. Create the venv once:\n"
-             "  uv venv .bus-venv && uv pip install --python .bus-venv/bin/python websockets==12.0")
+    sys.exit("connector: missing dependency 'websockets'. Create the venv once:\n"
+             "  uv venv .sync-venv && uv pip install --python .sync-venv/bin/python websockets==12.0")
 
 MAX_PAYLOAD_BYTES = 256 * 1024
 
@@ -51,7 +43,7 @@ def _load_dotenv() -> None:
     """Populate os.environ from a .env next to this file (existing env vars win).
 
     Tolerates `KEY = value` with spaces. .env is read as config, never executed.
-    This lets `python3 bus_client.py` work on its own, without launch.sh.
+    This lets `python3 connector.py` work on its own, without launch.sh.
     """
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
     try:
@@ -71,10 +63,10 @@ def _load_dotenv() -> None:
 def _cfg() -> dict:
     _load_dotenv()
     try:
-        url = os.environ["ORCHESTRATOR_URL"]
-        token = os.environ["RUN_TOKEN"]
+        url = os.environ["SERVICE_URL"]
+        token = os.environ["SESSION_TOKEN"]
     except KeyError as e:
-        sys.exit(f"bus_client: required env var {e} is not set (see launch.sh / .env)")
+        sys.exit(f"connector: required env var {e} is not set (see launch.sh / .env)")
     return {
         "url": url,
         "token": token,
@@ -94,7 +86,7 @@ async def _register(conn, cfg: dict) -> dict:
     }))
     reply = json.loads(await conn.recv())
     if reply.get("type") != "registered":
-        raise SystemExit(f"bus_client: registration refused: {reply}")
+        raise SystemExit(f"connector: registration refused: {reply}")
     return reply
 
 
@@ -103,7 +95,7 @@ async def run(announce_only: bool) -> None:
     async with websockets.connect(cfg["url"], max_size=MAX_PAYLOAD_BYTES) as conn:
         reg = await _register(conn, cfg)
         addr = reg["address"]
-        print(f"bus_client: registered as {addr} "
+        print(f"connector: registered as {addr} "
               f"(peers: {', '.join(reg.get('allowed_peers') or []) or 'none yet'})",
               flush=True)
 
@@ -121,9 +113,9 @@ async def run(announce_only: bool) -> None:
             try:
                 msg = json.loads(raw)
             except ValueError:
-                print(f"bus_client: dropped non-JSON frame ({len(raw)} bytes)", flush=True)
+                print(f"connector: dropped non-JSON frame ({len(raw)} bytes)", flush=True)
                 continue
-            print("bus_client: inbound " + json.dumps(msg, ensure_ascii=False), flush=True)
+            print("connector: inbound " + json.dumps(msg, ensure_ascii=False), flush=True)
 
 
 def main() -> None:

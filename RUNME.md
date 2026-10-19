@@ -11,13 +11,13 @@ cd deleg-nesting-experiment
 ./launch.sh
 ```
 
-**Configure `.env` before running `./start-experiment.sh`** (sets `ORCHESTRATOR_URL` and `RUN_TOKEN`).
+**Configure `.env` before running `./start-experiment.sh`** (sets `SERVICE_URL` and `SESSION_TOKEN`).
 
 The `./start-experiment.sh` script:
 - Initializes local git repos (via `setup.sh`)
-- Installs orchestrator dependencies
-- Starts the bus_client connection to the orchestrator
-- Validates the connection is live
+- Installs required dependencies
+- Starts background services
+- Validates services are running
 
 Then paste the contents of `KICKOFF_PROMPT.md` into the interactive `./launch.sh` session.
 

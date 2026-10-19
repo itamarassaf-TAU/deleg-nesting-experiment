@@ -4,6 +4,30 @@ A self-contained scaffold for observing **nested subagent delegation** in Claude
 
 **To run it, follow [RUNME.md](RUNME.md).** This file is background.
 
+## Quick start
+
+After cloning, run `./bootstrap.sh`. It creates an isolated virtual environment,
+installs the Telegram bridge dependencies, rebuilds the local clone manifest,
+validates the manifest, and starts the Telegram bridge. On the first run it
+creates `.env`; set `TELEGRAM_API_TOKEN` and the comma-separated
+`TELEGRAM_ALLOWED_USER_IDS`, then run the command again.
+
+The Telegram bridge is managed with:
+
+```bash
+./scripts/status.sh
+./scripts/stop.sh
+./scripts/start-telegram.sh
+```
+
+The nested repository audit remains separate and is started explicitly with
+`./scripts/start-audit.sh`. This prevents cloning or bootstrapping from
+silently starting an expensive interactive audit.
+
+Never commit `.env`. Use [.env.example](.env.example) as the configuration
+template. The bridge requires an allowlist, limits message size, applies a
+Claude timeout, and reports subprocess failures instead of hiding them. This file is background.
+
 ## Layout
 
 | Path | What it is |

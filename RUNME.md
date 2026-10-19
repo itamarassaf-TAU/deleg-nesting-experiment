@@ -13,6 +13,11 @@ bash setup.sh                 # builds .localgit/<team>/<repo> and manifest.json
 ./validate_manifest.sh        # expect 4 × OK
 ```
 
+For a full setup that also starts the Telegram bridge, use `./bootstrap.sh`.
+It creates `.env` from `.env.example` when needed; configure the bot token and
+allowed Telegram user IDs before rerunning it. Use `./scripts/start-audit.sh`
+to launch the nested audit separately.
+
 `setup.sh` is idempotent. Re-run it whenever you move or re-clone the directory, because `manifest.json` holds absolute `file://` URLs for the current location.
 
 ## 2. Pre-allow permissions

@@ -5,6 +5,10 @@ manifest.json
 spawn-log.ndjson
 reports/
 work/
+# local configuration and runtime state
+.runtime/
+.telegram-venv/
+*.log
 # python / build artifacts
 .venv*/
 __pycache__/

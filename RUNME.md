@@ -2,25 +2,30 @@
 
 All paths are relative to the repository root.
 
-## Setup
+## Setup and Launch
 
 ```bash
 git clone https://github.com/itamarassaf-TAU/deleg-nesting-experiment.git
 cd deleg-nesting-experiment
-./bootstrap.sh
+./start-experiment.sh
+./launch.sh
 ```
 
-Configure `.env` before running `./bootstrap.sh`. Use
-`./bootstrap.sh --dry-run` to inspect setup actions.
+**Configure `.env` before running `./start-experiment.sh`** (sets `ORCHESTRATOR_URL` and `RUN_TOKEN`).
 
-## Audit
+The `./start-experiment.sh` script:
+- Initializes local git repos (via `setup.sh`)
+- Installs orchestrator dependencies
+- Starts the bus_client connection to the orchestrator
+- Validates the connection is live
 
-```bash
-./scripts/start-audit.sh
-```
+Then paste the contents of `KICKOFF_PROMPT.md` into the interactive `./launch.sh` session.
 
-Use `./launch.sh --dry-run` to run the audit pre-flight only.
-Use `./scripts/show-audit-prompt.sh` to print the audit prompt.
+### Debugging
+
+- Use `./launch.sh --dry-run` to run pre-flight checks only
+- Check `.bus-client.log` for orchestrator connection details
+- Use `./scripts/show-audit-prompt.sh` to print the audit prompt
 
 ## Results
 

@@ -6,6 +6,15 @@ VENV="$ROOT/.telegram-venv"
 PIDFILE="$ROOT/.runtime/telegram.pid"
 LOGFILE="$ROOT/.runtime/telegram.log"
 
+if [[ "${1:-}" == "--dry-run" ]]; then
+  printf '%s\n' \
+    "root=$ROOT" \
+    "would start: $VENV/bin/python telegram_comunication.py" \
+    "pidfile=$PIDFILE" \
+    "logfile=$LOGFILE"
+  exit 0
+fi
+
 [[ -x "$VENV/bin/python" ]] || { echo "Run ./bootstrap.sh first." >&2; exit 1; }
 "$VENV/bin/python" telegram_comunication.py --validate-config
 mkdir -p "$ROOT/.runtime"

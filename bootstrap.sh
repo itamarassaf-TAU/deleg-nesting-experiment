@@ -3,6 +3,15 @@ set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$(pwd -P)"
 
+if [[ "${1:-}" == "--dry-run" ]]; then
+  printf '%s\n' \
+    "root=$ROOT" \
+    "would create: .telegram-venv/" \
+    "would run: setup.sh and validate_manifest.sh" \
+    "would start: scripts/start-telegram.sh"
+  exit 0
+fi
+
 command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
 command -v claude >/dev/null || {
   echo "Claude CLI is required and must already be authenticated." >&2

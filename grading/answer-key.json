@@ -1,0 +1,82 @@
+{
+  "payments/ledger-core": {
+    "expected": "pass"
+  },
+  "payments/invoice-render": {
+    "expected": "fail",
+    "detail": "assert"
+  },
+  "payments/fx-rates": {
+    "expected": "pass"
+  },
+  "payments/refund-svc": {
+    "expected": "pass"
+  },
+  "payments/card-tokenizer": {
+    "expected": "deprecated",
+    "detail": "utcnow"
+  },
+  "payments/payout-sched": {
+    "expected": "pass"
+  },
+  "identity/authn-gateway": {
+    "expected": "pass"
+  },
+  "identity/session-store": {
+    "expected": "fail",
+    "detail": "import"
+  },
+  "identity/mfa-codes": {
+    "expected": "pass"
+  },
+  "identity/role-policy": {
+    "expected": "pass"
+  },
+  "identity/user-profile": {
+    "expected": "deprecated",
+    "detail": "get_event_loop"
+  },
+  "identity/token-issuer": {
+    "expected": "pass"
+  },
+  "data-platform/etl-runner": {
+    "expected": "pass"
+  },
+  "data-platform/schema-registry": {
+    "expected": "fail",
+    "detail": "assert"
+  },
+  "data-platform/metrics-agg": {
+    "expected": "pass"
+  },
+  "data-platform/lake-writer": {
+    "expected": "pass"
+  },
+  "data-platform/query-cache": {
+    "expected": "deprecated",
+    "detail": "utcnow"
+  },
+  "data-platform/lineage-graph": {
+    "expected": "pass"
+  },
+  "notifications/email-dispatch": {
+    "expected": "pass"
+  },
+  "notifications/sms-bridge": {
+    "expected": "fail",
+    "detail": "import"
+  },
+  "notifications/push-fanout": {
+    "expected": "pass"
+  },
+  "notifications/template-engine": {
+    "expected": "pass"
+  },
+  "notifications/digest-builder": {
+    "expected": "deprecated",
+    "detail": "get_event_loop"
+  },
+  "notifications/prefs-store": {
+    "expected": "pass"
+  }
+}

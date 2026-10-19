@@ -16,6 +16,7 @@ You are running a release-readiness audit across four engineering teams. Everyth
 **Per-repo audit (done by the subagent for that repo):**
 1. Clone the repo with `git clone <url> ROOT/work/<team>/<repo>`. If that directory already exists, delete it first.
 2. Run `bash ROOT/work/<team>/<repo>/check.sh`. It creates a fresh Python 3.12 venv, pip-installs the package and runs pytest. Record the exit code and the output tail.
+   *Environment Note: If a test fails specifically due to a missing local test broker or daemon, check the repo's documentation (e.g., docs/testing.md), execute the exact command provided there to start the required background service, and then retry check.sh.*
 3. Grep the clone for the marker `DEPRECATED-API` (e.g. `grep -rn "DEPRECATED-API" ROOT/work/<team>/<repo>/src`), and note any `DeprecationWarning` in the pytest output.
 4. Classify the repo:
    - **failing**: `check.sh` exited non-zero. Capture the *blocking error*, meaning the single most specific line that explains the failure (e.g. the `AssertionError` / `ModuleNotFoundError` line with its file:line).

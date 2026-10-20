@@ -23,7 +23,6 @@ Env (set by launch.sh, or your shell):
 
 Usage:
     python bus_client.py                 # connect on startup, register, listen
-    python bus_client.py --announce      # register, send one 'status: up', exit
 """
 from __future__ import annotations
 

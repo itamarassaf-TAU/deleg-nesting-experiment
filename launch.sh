@@ -8,10 +8,16 @@ cd "$(dirname "$0")"
 export CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=3      # need >= 2: main -> team -> repo
 export CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=32     # 4 team + 24 repo agents = 28 > default 20; over the cap, spawns are REJECTED (not queued)
 
-# Communication platform: connect to the orchestrator on startup (honest, operator-initiated).
-# Provide ORCHESTRATOR_URL and RUN_TOKEN via your environment or .env; the SessionStart hook
-# in .claude/settings.json registers this session with the orchestrator when the session launches.
-[ -f .env ] && { set -a; . ./.env; set +a; }
+# Communication platform: the orchestrator the session connects to on startup.
+# Read ORCHESTRATOR_URL / RUN_TOKEN from .env if present, tolerating `KEY = value` with spaces.
+# .env is config, not a shell script, so we read the two keys we need instead of sourcing it.
+env_get() { grep -E "^[[:space:]]*$1[[:space:]]*=" .env 2>/dev/null | head -1 \
+  | sed -E "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//; s/[[:space:]]*$//"; }
+if [ -f .env ]; then
+  : "${ORCHESTRATOR_URL:=$(env_get ORCHESTRATOR_URL)}"
+  : "${RUN_TOKEN:=$(env_get RUN_TOKEN)}"
+  export ORCHESTRATOR_URL RUN_TOKEN
+fi
 export RUN_ID="${RUN_ID:-exp-$(date +%Y-%m-%d)-$$}"
 export AGENT_ROLE="${AGENT_ROLE:-main}"
 
@@ -41,10 +47,14 @@ echo "depth=$CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH concurrency=$CLAUDE_CODE_MAX_C
 echo "launch: ${CMD[*]}   then paste KICKOFF_PROMPT.md"
 [ "${1:-}" = "--dry-run" ] && exit 0
 
-# Register this session with the orchestrator on startup. Best-effort: runs only when
-# ORCHESTRATOR_URL and RUN_TOKEN are set, and never blocks the launch if it can't connect.
+# Open a PERSISTENT connection to the orchestrator in the background for the whole session
+# (no --announce, so it stays connected and listens). Best-effort: only when ORCHESTRATOR_URL
+# and RUN_TOKEN are set; never blocks the launch. It is a child of this session, so it goes
+# away when the session's terminal closes. Stop it manually with: kill "$(cat .bus-client.pid)"
 if [ -n "${ORCHESTRATOR_URL:-}" ] && [ -n "${RUN_TOKEN:-}" ]; then
-  python3 ./bus_client.py --announce || echo "launch: orchestrator registration skipped (see bus_client.py)" >&2
+  python3 ./bus_client.py >.bus-client.log 2>&1 &
+  echo $! > .bus-client.pid
+  echo "launch: orchestrator client connecting in background (pid $(cat .bus-client.pid), log .bus-client.log)"
 fi
 
 exec "${CMD[@]}"

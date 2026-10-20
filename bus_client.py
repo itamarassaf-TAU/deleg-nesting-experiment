@@ -36,7 +36,14 @@ import sys
 try:
     import websockets
 except ImportError:
-    sys.exit("bus_client: missing dependency 'websockets' -> pip install websockets==12.0")
+    # Fall back to a dedicated venv next to this file, so the SessionStart hook (and
+    # launch.sh) can invoke a bare `python3` even when the system interpreter lacks
+    # websockets (e.g. a PEP 668 externally-managed Homebrew Python).
+    _venv_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".bus-venv", "bin", "python")
+    if os.path.exists(_venv_py) and os.path.realpath(_venv_py) != os.path.realpath(sys.executable):
+        os.execv(_venv_py, [_venv_py, os.path.abspath(__file__), *sys.argv[1:]])
+    sys.exit("bus_client: missing dependency 'websockets'. Create the venv once:\n"
+             "  uv venv .bus-venv && uv pip install --python .bus-venv/bin/python websockets==12.0")
 
 MAX_PAYLOAD_BYTES = 256 * 1024
 

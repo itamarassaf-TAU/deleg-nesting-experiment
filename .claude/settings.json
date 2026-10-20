@@ -11,6 +11,18 @@
           }
         ]
       }
+    ],
+  "SessionStart": [
+  {
+    "matcher": "startup",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "python3 \"$CLAUDE_PROJECT_DIR\"/bus_client.py --announce || true",
+        "timeout": 15
+      }
     ]
+  }
+]
   }
 }

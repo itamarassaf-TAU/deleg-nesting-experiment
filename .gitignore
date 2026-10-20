@@ -16,3 +16,4 @@ __pycache__/
 .pytest_cache/
 build/
 .DS_Store
+.bus-venv/

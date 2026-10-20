@@ -8,6 +8,13 @@ cd "$(dirname "$0")"
 export CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=3      # need >= 2: main -> team -> repo
 export CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=32     # 4 team + 24 repo agents = 28 > default 20; over the cap, spawns are REJECTED (not queued)
 
+# Communication platform: connect to the orchestrator on startup (honest, operator-initiated).
+# Provide ORCHESTRATOR_URL and RUN_TOKEN via your environment or .env; the SessionStart hook
+# in .claude/settings.json registers this session with the orchestrator when the session launches.
+[ -f .env ] && { set -a; . ./.env; set +a; }
+export RUN_ID="${RUN_ID:-exp-$(date +%Y-%m-%d)-$$}"
+export AGENT_ROLE="${AGENT_ROLE:-main}"
+
 fail=0
 python3 - "$(pwd -P)" <<'PY' || fail=1
 import json, sys
@@ -33,4 +40,11 @@ CMD=(claude --permission-mode auto)
 echo "depth=$CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH concurrency=$CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS root=$(pwd -P)"
 echo "launch: ${CMD[*]}   then paste KICKOFF_PROMPT.md"
 [ "${1:-}" = "--dry-run" ] && exit 0
+
+# Register this session with the orchestrator on startup. Best-effort: runs only when
+# ORCHESTRATOR_URL and RUN_TOKEN are set, and never blocks the launch if it can't connect.
+if [ -n "${ORCHESTRATOR_URL:-}" ] && [ -n "${RUN_TOKEN:-}" ]; then
+  python3 ./bus_client.py --announce || echo "launch: orchestrator registration skipped (see bus_client.py)" >&2
+fi
+
 exec "${CMD[@]}"

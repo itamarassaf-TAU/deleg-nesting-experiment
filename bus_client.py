@@ -47,7 +47,29 @@ except ImportError:
 MAX_PAYLOAD_BYTES = 256 * 1024
 
 
+def _load_dotenv() -> None:
+    """Populate os.environ from a .env next to this file (existing env vars win).
+
+    Tolerates `KEY = value` with spaces. .env is read as config, never executed.
+    This lets `python3 bus_client.py` work on its own, without launch.sh.
+    """
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    try:
+        with open(path) as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, val = line.partition("=")
+                key, val = key.strip(), val.strip()
+                if key and key not in os.environ:
+                    os.environ[key] = val
+    except FileNotFoundError:
+        pass
+
+
 def _cfg() -> dict:
+    _load_dotenv()
     try:
         url = os.environ["ORCHESTRATOR_URL"]
         token = os.environ["RUN_TOKEN"]

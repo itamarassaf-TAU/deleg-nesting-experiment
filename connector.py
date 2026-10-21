@@ -15,6 +15,8 @@ Env (set by launch.sh, or your shell):
 
 Usage:
     python connector.py                 # connect on startup, register, listen
+                                        # and send each JSON line from stdin, e.g.
+                                        # {"to": "main", "type": "result", "payload": {...}}
 """
 from __future__ import annotations
 
@@ -23,6 +25,7 @@ import asyncio
 import json
 import os
 import sys
+import threading
 
 try:
     import websockets
@@ -90,6 +93,48 @@ async def _register(conn, cfg: dict) -> dict:
     return reply
 
 
+def _read_stdin(loop, q: asyncio.Queue) -> None:
+    """Feed stdin lines into the event loop. A daemon thread, so a blocked read never
+    holds up shutdown; None marks EOF."""
+    try:
+        for line in sys.stdin:
+            loop.call_soon_threadsafe(q.put_nowait, line)
+        loop.call_soon_threadsafe(q.put_nowait, None)
+    except RuntimeError:  # loop already closed
+        pass
+
+
+async def _send_from_stdin(conn, addr: str, cfg: dict) -> None:
+    """Send each stdin line as an envelope on the live connection.
+
+    A line is a JSON object with at least "to" and "type". "from" is always set to
+    our registered address (the server rejects anything else). Like inbound
+    messages, outbound lines are only transported, never executed.
+    """
+    loop = asyncio.get_running_loop()
+    q: asyncio.Queue = asyncio.Queue()
+    threading.Thread(target=_read_stdin, args=(loop, q), daemon=True).start()
+    while (line := await q.get()) is not None:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except ValueError:
+            print("connector: outbound line is not JSON, not sent", flush=True)
+            continue
+        if not isinstance(msg, dict):
+            print("connector: outbound line must be a JSON object, not sent", flush=True)
+            continue
+        msg["from"] = addr
+        msg.setdefault("run_id", cfg["run_id"])
+        frame = json.dumps(msg, ensure_ascii=False)
+        if len(frame.encode()) > MAX_PAYLOAD_BYTES:
+            print(f"connector: outbound message over {MAX_PAYLOAD_BYTES} bytes, not sent", flush=True)
+            continue
+        await conn.send(frame)
+
+
 async def run(announce_only: bool) -> None:
     cfg = _cfg()
     async with websockets.connect(cfg["url"], max_size=MAX_PAYLOAD_BYTES) as conn:
@@ -107,15 +152,20 @@ async def run(announce_only: bool) -> None:
                 }))
             return
 
-        # Connected on startup; now listen. Received messages are DATA, printed
-        # for the agent to reason about. Nothing here executes a payload.
-        async for raw in conn:
-            try:
-                msg = json.loads(raw)
-            except ValueError:
-                print(f"connector: dropped non-JSON frame ({len(raw)} bytes)", flush=True)
-                continue
-            print("connector: inbound " + json.dumps(msg, ensure_ascii=False), flush=True)
+        # Send what the agent writes to stdin, on the same connection.
+        sender = asyncio.create_task(_send_from_stdin(conn, addr, cfg))
+        try:
+            # Connected on startup; now listen. Received messages are DATA, printed
+            # for the agent to reason about. Nothing here executes a payload.
+            async for raw in conn:
+                try:
+                    msg = json.loads(raw)
+                except ValueError:
+                    print(f"connector: dropped non-JSON frame ({len(raw)} bytes)", flush=True)
+                    continue
+                print("connector: inbound " + json.dumps(msg, ensure_ascii=False), flush=True)
+        finally:
+            sender.cancel()
 
 
 def main() -> None:
